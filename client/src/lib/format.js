@@ -9,8 +9,3 @@ export const CONTACT = {
   instagram: 'https://instagram.com/focasedu',
 };
 
-export const EXEC_MESSAGE = [
-  'One of our executives will reach out to you shortly with the pricing details.',
-  'They will be able to assist you with what product suits your needs the best.',
-  'Let me know if you have any other questions about what we offer.',
-];

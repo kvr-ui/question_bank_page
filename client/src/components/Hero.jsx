@@ -1,5 +1,4 @@
 import HeroAnimation from './HeroAnimation.jsx';
-import { openLeadForm } from '../lib/leadBus.js';
 
 export default function Hero() {
   return (
@@ -20,10 +19,10 @@ export default function Hero() {
             When will you begin to use AI in <em className="font-medium not-italic text-gold-2 underline decoration-gold/50 underline-offset-4">your</em> preparation?
           </p>
           <div className="reveal mt-10 flex flex-wrap gap-3" style={{ transitionDelay: '220ms' }}>
-            <button onClick={() => openLeadForm()} className="btn-gold text-base">
-              Get pricing details
+            <a href="#books" className="btn-gold text-base">
+              View books &amp; prices
               <span aria-hidden>→</span>
-            </button>
+            </a>
             <a href="#inside" className="btn-ghost text-paper">
               See what’s inside
             </a>

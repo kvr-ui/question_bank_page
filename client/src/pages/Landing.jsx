@@ -2,9 +2,9 @@ import Header from '../components/Header.jsx';
 import Hero from '../components/Hero.jsx';
 import FourBlocks from '../components/FourBlocks.jsx';
 import HowAIWorks from '../components/HowAIWorks.jsx';
+import Credits from '../components/Credits.jsx';
 import BooksGrid from '../components/BooksGrid.jsx';
 import Testimonials from '../components/Testimonials.jsx';
-import LeadForm from '../components/LeadForm.jsx';
 import FAQ from '../components/FAQ.jsx';
 import Footer from '../components/Footer.jsx';
 import WhatsAppFab from '../components/WhatsAppFab.jsx';
@@ -19,9 +19,9 @@ export default function Landing() {
         <Hero />
         <FourBlocks />
         <HowAIWorks />
+        <Credits />
         <BooksGrid />
         <Testimonials />
-        <LeadForm />
         <FAQ />
       </main>
       <Footer />

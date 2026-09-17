@@ -34,7 +34,7 @@ export default function Footer() {
               <li><a className="hover:text-gold" href="#inside">What’s inside</a></li>
               <li><a className="hover:text-gold" href="#ai">AI Generation</a></li>
               <li><a className="hover:text-gold" href="#books">Books</a></li>
-              <li><a className="hover:text-gold" href="#get-pricing">Request a call</a></li>
+              <li><a className="hover:text-gold" href="#credits">Credits</a></li>
             </ul>
           </div>
         </div>

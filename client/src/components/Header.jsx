@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import Logo from './Logo.jsx';
-import { openLeadForm } from '../lib/leadBus.js';
 import CartDrawer, { CartButton } from './CartDrawer.jsx';
 
 const NAV = [
   ['What’s inside', '#inside'],
   ['AI Generation', '#ai'],
+  ['Credits', '#credits'],
   ['Books', '#books'],
   ['Testimonials', '#testimonials'],
   ['FAQ', '#faq'],
@@ -46,9 +46,9 @@ export default function Header() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <button onClick={() => openLeadForm()} className="btn-gold hidden px-5 py-2.5 text-sm sm:inline-flex">
-              Request a call
-            </button>
+            <a href="#books" className="btn-gold hidden px-5 py-2.5 text-sm sm:inline-flex">
+              Buy now
+            </a>
             <CartButton />
             <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={open}>
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -65,15 +65,9 @@ export default function Header() {
                 {label}
               </a>
             ))}
-            <button
-              onClick={() => {
-                setOpen(false);
-                openLeadForm();
-              }}
-              className="btn-gold mt-4 w-full"
-            >
-              Request a call
-            </button>
+            <a href="#books" onClick={() => setOpen(false)} className="btn-gold mt-4 w-full">
+              Buy now
+            </a>
           </nav>
         )}
       </header>
