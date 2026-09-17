@@ -29,10 +29,11 @@ export default function Header() {
           <a href="#top" aria-label="FOCAS home" className="flex items-center gap-3">
             <Logo />
             <span className="hidden h-8 w-px bg-paper/20 sm:block" />
-            <span className="hidden text-xs leading-tight text-paper/70 sm:block">
+            <span className="hidden items-center gap-2 text-xs leading-tight text-paper/70 sm:flex">
               Powered by
-              <br />
-              <span className="font-semibold text-paper">CA Guru.ai</span>
+              <span className="inline-flex rounded-xl bg-white px-2 py-1 shadow-sm">
+                <img src="/logo/caguru.png" alt="CA Guru.ai" width="417" height="240" className="h-9 w-auto sm:h-10" />
+              </span>
             </span>
           </a>
 

@@ -13,6 +13,12 @@ export default function Footer() {
             <p className="mt-5 max-w-sm font-display text-3xl uppercase leading-tight">
               Let’s make it your <span className="text-gold">last attempt</span>
             </p>
+            <p className="mt-5 flex items-center gap-3 text-sm text-paper/60">
+              Powered by
+              <span className="inline-flex rounded-xl bg-white px-2 py-1 shadow-sm">
+                <img src="/logo/caguru.png" alt="CA Guru.ai" width="417" height="240" loading="lazy" className="h-10 w-auto" />
+              </span>
+            </p>
           </div>
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-paper/50">Contact</p>
