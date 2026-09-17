@@ -61,7 +61,7 @@ export default function Products() {
       <PageTitle title="Products & prices">
         <button className={btnCls} onClick={() => { setForm(blank); setEditing('new'); }}>Add product</button>
       </PageTitle>
-      <p className="-mt-4 mb-6 text-sm text-slate-500">Prices are never shown on the landing page. They only appear on checkout pages and payment links.</p>
+      <p className="-mt-4 mb-6 text-sm text-slate-500">Prices set here are shown on the landing page, in the cart and at checkout.</p>
       <ErrorText>{error}</ErrorText>
 
       {editing && (

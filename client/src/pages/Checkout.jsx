@@ -5,14 +5,18 @@ import { api } from '../lib/api.js';
 import { rupees, CONTACT } from '../lib/format.js';
 import { loadRazorpay } from '../lib/razorpay.js';
 import { STATES } from '../lib/states.js';
+import { paperLabel } from '../lib/subjects.js';
+import { useCart } from '../lib/cart.jsx';
 
 const emptyForm = {
   customer: { name: '', phone: '', email: '' },
   shipping: { address: '', city: '', state: '', pincode: '' },
 };
 
-export default function Checkout() {
+export default function Checkout({ cart: fromCart = false }) {
   const { slug, token } = useParams();
+  const cart = useCart();
+  const cartSlugs = cart.items.map((i) => i.slug).join(',');
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loadError, setLoadError] = useState('');
@@ -21,10 +25,19 @@ export default function Checkout() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const path = token ? `/checkout/link/${token}` : `/checkout/product/${slug}`;
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    if (fromCart && !cartSlugs) {
+      setLoadError('Your cart is empty. Add a book to continue.');
+      return;
+    }
+    const path = token ? `/checkout/link/${token}` : fromCart ? `/checkout/cart?slugs=${encodeURIComponent(cartSlugs)}` : `/checkout/product/${slug}`;
+    setLoadError('');
     api(path).then(setData).catch((e) => setLoadError(e.message));
     loadRazorpay();
-  }, [slug, token]);
+  }, [slug, token, fromCart, cartSlugs]);
 
   const set = (section, key) => (e) => {
     let v = e.target.value;
@@ -39,7 +52,7 @@ export default function Checkout() {
     try {
       const ok = await loadRazorpay();
       if (!ok) throw new Error('Could not load the payment window. Check your connection and try again.');
-      const order = await api('/payments/order', { method: 'POST', body: { ...(token ? { token } : { slug }), ...form } });
+      const order = await api('/payments/order', { method: 'POST', body: { ...(token ? { token } : fromCart ? { slugs: data.items.map((i) => i.slug) } : { slug }), ...form } });
 
       const rzp = new window.Razorpay({
         key: order.keyId,
@@ -53,6 +66,7 @@ export default function Checkout() {
         handler: async (resp) => {
           try {
             const r = await api('/payments/verify', { method: 'POST', body: resp });
+            if (fromCart) cart.clear();
             navigate(`/order/success/${r.orderId}`, { replace: true });
           } catch (err) {
             setError(`${err.message}. If money was deducted, contact us on ${CONTACT.phoneDisplay} with your payment ID: ${resp.razorpay_payment_id}`);
@@ -77,7 +91,7 @@ export default function Checkout() {
       <div className="min-h-screen bg-paper">
         <SimpleHeader />
         <div className="mx-auto max-w-lg px-4 py-24 text-center">
-          <h1 className="font-display text-4xl uppercase">Link unavailable</h1>
+          <h1 className="font-display text-4xl uppercase">{fromCart ? 'Cart unavailable' : 'Link unavailable'}</h1>
           <p className="mt-4 text-mute">{loadError}</p>
           <Link to="/" className="btn-ink mt-8">Back to home</Link>
         </div>
@@ -165,7 +179,7 @@ export default function Checkout() {
                       <div className="min-w-0">
                         <p className="font-semibold leading-snug">{it.title}</p>
                         <p className="text-xs text-paper/60">
-                          {it.group ? `Group ${it.group}` : 'Both groups'} · Module {it.module}
+                          {it.group ? `Group ${it.group}` : 'Both groups'} · {paperLabel(it.subjects)}
                         </p>
                         {it.type === 'bundle' && <p className="mt-1 text-xs text-paper/60">{it.subjects.join(', ')}</p>}
                       </div>

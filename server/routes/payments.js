@@ -9,7 +9,7 @@ import Lead from '../models/Lead.js';
 import { validate } from '../middleware/validate.js';
 import { phone, email } from '../utils/validators.js';
 import { razorpay, verifyPaymentSignature, verifyWebhookSignature } from '../utils/razorpay.js';
-import { resolvePaymentLink } from './public.js';
+import { resolvePaymentLink, resolveCart, MAX_CART_ITEMS } from './public.js';
 
 const router = Router();
 const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -17,6 +17,7 @@ const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHead
 const orderInput = z
   .object({
     slug: z.string().optional(),
+    slugs: z.array(z.string().max(80)).min(1).max(MAX_CART_ITEMS).optional(),
     token: z.string().optional(),
     customer: z.object({
       name: z.string().trim().min(2, 'Enter your full name').max(80),
@@ -30,7 +31,7 @@ const orderInput = z
       pincode: z.string().trim().regex(/^[1-9]\d{5}$/, 'Enter a valid 6-digit pincode'),
     }),
   })
-  .refine((v) => v.slug || v.token, 'slug or token is required');
+  .refine((v) => v.slug || v.slugs || v.token, 'slug, slugs or token is required');
 
 async function markPaid(order, paymentId) {
   if (order.status === 'paid') return order;
@@ -44,7 +45,7 @@ async function markPaid(order, paymentId) {
 }
 
 router.post('/order', payLimiter, validate(orderInput), async (req, res) => {
-  const { slug, token, customer, shipping } = req.body;
+  const { slug, slugs, token, customer, shipping } = req.body;
   let items;
   let amount;
   let paymentLink = null;
@@ -56,6 +57,11 @@ router.post('/order', payLimiter, validate(orderInput), async (req, res) => {
     items = r.products.map((p) => ({ slug: p.slug, title: p.title, price: p.price }));
     amount = r.amount;
     paymentLink = r.link._id;
+  } else if (slugs) {
+    const r = await resolveCart(slugs);
+    if (r.error) return res.status(r.status).json({ error: r.error });
+    items = r.products.map((p) => ({ slug: p.slug, title: p.title, price: p.price }));
+    amount = r.amount;
   } else {
     const product = await Product.findOne({ slug, active: true }).lean();
     if (!product) return res.status(404).json({ error: 'Product not found' });

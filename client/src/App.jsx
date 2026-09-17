@@ -11,6 +11,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
+      <Route path="/checkout/cart" element={<Checkout cart />} />
       <Route path="/checkout/:slug" element={<Checkout />} />
       <Route path="/pay/:token" element={<Checkout />} />
       <Route path="/order/success/:id" element={<OrderSuccess />} />

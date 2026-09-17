@@ -15,13 +15,33 @@ router.get('/testimonials', async (req, res) => {
   res.json(items.map(({ _id, studentName, caption, bunnyEmbedUrl, orientation }) => ({ _id, studentName, caption, bunnyEmbedUrl, orientation })));
 });
 
-// Landing page catalogue: prices are deliberately NOT exposed here.
+const priced = (p) => ({ slug: p.slug, title: p.title, type: p.type, group: p.group, module: p.module, subjects: p.subjects, image: p.image, accent: p.accent, price: p.price, mrp: p.mrp });
+
 router.get('/products', async (req, res) => {
   const items = await Product.find({ active: true }).sort({ sortOrder: 1 }).lean();
-  res.json(items.map(({ slug, title, type, group, module, subjects, image, accent }) => ({ slug, title, type, group, module, subjects, image, accent })));
+  res.json(items.map(priced));
 });
 
-const priced = (p) => ({ slug: p.slug, title: p.title, type: p.type, group: p.group, module: p.module, subjects: p.subjects, image: p.image, accent: p.accent, price: p.price, mrp: p.mrp });
+export const MAX_CART_ITEMS = 20;
+
+// Resolves a cart (list of slugs) to active products; the total is always computed here.
+export async function resolveCart(slugs) {
+  const unique = [...new Set(slugs)];
+  if (!unique.length) return { error: 'Your cart is empty', status: 400 };
+  if (unique.length > MAX_CART_ITEMS) return { error: 'Too many items in cart', status: 400 };
+  const found = await Product.find({ slug: { $in: unique }, active: true }).sort({ sortOrder: 1 }).lean();
+  if (found.length !== unique.length) return { error: 'Some items in your cart are no longer available. Please review your cart.', status: 404 };
+  const amount = found.reduce((s, p) => s + p.price, 0);
+  const mrp = found.reduce((s, p) => s + (p.mrp || p.price), 0);
+  return { products: found, amount, mrp };
+}
+
+router.get('/checkout/cart', async (req, res) => {
+  const slugs = String(req.query.slugs || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const r = await resolveCart(slugs);
+  if (r.error) return res.status(r.status).json({ error: r.error });
+  res.json({ items: r.products.map(priced), amount: r.amount, mrp: r.mrp });
+});
 
 router.get('/checkout/product/:slug', async (req, res) => {
   const product = await Product.findOne({ slug: req.params.slug, active: true }).lean();

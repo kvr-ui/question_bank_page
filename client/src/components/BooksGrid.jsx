@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
-import { openLeadForm } from '../lib/leadBus.js';
+import { useCart } from '../lib/cart.jsx';
+import { rupees } from '../lib/format.js';
+import { paperLabel } from '../lib/subjects.js';
 
 const TABS = [
   ['all', 'All subjects'],
@@ -13,6 +15,7 @@ const TABS = [
 export default function BooksGrid() {
   const [products, setProducts] = useState(null);
   const [tab, setTab] = useState('all');
+  const cart = useCart();
 
   useEffect(() => {
     api('/products').then(setProducts).catch(() => setProducts([]));
@@ -78,12 +81,16 @@ export default function BooksGrid() {
                 </div>
                 <div className="flex flex-1 flex-col p-4 sm:p-5">
                   <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-mute">
-                    {p.group ? `Group ${p.group}` : 'Both groups'} · Module {p.module}
+                    {p.group ? `Group ${p.group}` : 'Both groups'} · {paperLabel(p.subjects)}
                   </p>
                   <h3 className="mt-1 flex-1 text-base font-semibold leading-snug sm:text-lg">{p.title}</h3>
+                  <p className="mt-3 flex items-baseline gap-2">
+                    <span className="font-display text-3xl leading-none">{rupees(p.price)}</span>
+                    {p.mrp > p.price && <span className="text-sm text-mute line-through">{rupees(p.mrp)}</span>}
+                  </p>
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                    <button onClick={() => openLeadForm(p.subjects)} className="btn flex-1 border border-ink/15 px-3 py-2.5 text-sm hover:bg-ink hover:text-paper">
-                      Get pricing
+                    <button onClick={() => cart.add(p)} className="btn flex-1 border border-ink/15 px-3 py-2.5 text-sm hover:bg-ink hover:text-paper">
+                      {cart.has(p.slug) ? 'In cart ✓' : 'Add to cart'}
                     </button>
                     <Link to={`/checkout/${p.slug}`} className="btn flex-1 bg-[var(--accent)] px-3 py-2.5 text-sm text-white hover:brightness-110">
                       Buy now

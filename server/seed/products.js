@@ -4,7 +4,7 @@ import mongoose from 'mongoose';
 import { connectDB } from '../config/db.js';
 import Product from '../models/Product.js';
 
-const PLACEHOLDER_SINGLE = 99900; // ₹999 — change from the admin panel
+const SINGLE_PRICE = 100000; // ₹1,000 — change from the admin panel
 const G1 = ['Advanced Accounting', 'Corporate & Other Laws', 'Direct Taxation', 'Indirect Taxation'];
 const G2 = ['Cost & Management Accounting', 'Auditing & Ethics', 'Financial Management', 'Strategic Management'];
 
@@ -24,7 +24,7 @@ const singles = [
   group,
   module: '01',
   subjects: [title],
-  price: PLACEHOLDER_SINGLE,
+  price: SINGLE_PRICE,
   mrp: 0,
   image: `/products/${slug}.webp`,
   accent,
@@ -32,9 +32,9 @@ const singles = [
 }));
 
 const bundles = [
-  { slug: 'group-1-set', title: 'Group 1 — Complete Set (4 books)', group: 1, subjects: G1, price: 349900, image: '/products/advanced-accounting.webp', accent: '#2563a8', sortOrder: 20 },
-  { slug: 'group-2-set', title: 'Group 2 — Complete Set (4 books)', group: 2, subjects: G2, price: 349900, image: '/products/cost-management-accounting.webp', accent: '#8e3f9e', sortOrder: 21 },
-  { slug: 'all-8-set', title: 'Both Groups — All 8 Books', group: null, subjects: [...G1, ...G2], price: 649900, image: '/products/all-8.webp', accent: '#d9a441', sortOrder: 22 },
+  { slug: 'group-1-set', title: 'Group 1 — Complete Set (4 books)', group: 1, subjects: G1, price: 300000, image: '/products/advanced-accounting.webp', accent: '#2563a8', sortOrder: 20 },
+  { slug: 'group-2-set', title: 'Group 2 — Complete Set (4 books)', group: 2, subjects: G2, price: 300000, image: '/products/cost-management-accounting.webp', accent: '#8e3f9e', sortOrder: 21 },
+  { slug: 'all-8-set', title: 'Both Groups — All 8 Books', group: null, subjects: [...G1, ...G2], price: 600000, image: '/products/all-8.webp', accent: '#d9a441', sortOrder: 22 },
 ].map((b) => ({ ...b, type: 'bundle', module: '01', mrp: 0 }));
 
 await connectDB();

@@ -1,11 +1,14 @@
 import { useState } from 'react';
 
-// Drop the real logo at client/public/logo/focas.png (transparent, light version for dark backgrounds).
-// Until then a text wordmark is shown.
+// Full-colour FOCAS logo (client/public/logo/focas.png) on a white badge so it reads on dark backgrounds.
 export default function Logo({ className = '' }) {
   const [failed, setFailed] = useState(false);
   if (!failed) {
-    return <img src="/logo/focas.png" alt="FOCAS — Your Last Attempt" className={`h-10 w-auto ${className}`} onError={() => setFailed(true)} />;
+    return (
+      <span className={`inline-flex items-center rounded-xl bg-white px-2.5 py-1 shadow-sm ${className}`}>
+        <img src="/logo/focas.png" alt="FOCAS — Your Last Attempt" width="500" height="133" className="h-9 w-auto sm:h-10" onError={() => setFailed(true)} />
+      </span>
+    );
   }
   return (
     <span className={`flex flex-col leading-none ${className}`}>
