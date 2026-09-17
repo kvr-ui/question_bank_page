@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Anton", "Impact", sans-serif;
+  --font-sans: "Lexend", system-ui, sans-serif;
+
+  --color-ink: #0b2447;
+  --color-ink-2: #12325f;
+  --color-brand: #1f5fae;
+  --color-brand-2: #2f74c8;
+  --color-gold: #e0a84a;
+  --color-gold-2: #f2c77a;
+  --color-paper: #f6f1e7;
+  --color-paper-2: #ece4d3;
+  --color-mute: #5d6b82;
+
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-marquee: marquee 40s linear infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-14px) rotate(-2deg); }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+html { scroll-behavior: smooth; }
+body {
+  @apply bg-paper text-ink font-sans antialiased;
+}
+
+/* grain overlay for depth on dark sections */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* scroll reveal */
+.reveal { opacity: 0; transform: translateY(28px); transition: opacity .8s cubic-bezier(.2,.7,.2,1), transform .8s cubic-bezier(.2,.7,.2,1); }
+.reveal.is-visible { opacity: 1; transform: none; }
+
+.infinity-path { stroke-dasharray: 1200; stroke-dashoffset: 1200; animation: draw 3.2s ease-out forwards .3s; }
+
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed; }
+@utility btn-gold { @apply btn bg-gold text-ink hover:bg-gold-2 hover:-translate-y-0.5 shadow-[0_8px_24px_-8px_rgba(224,168,74,.7)]; }
+@utility btn-ink { @apply btn bg-ink text-paper hover:bg-ink-2 hover:-translate-y-0.5; }
+@utility btn-ghost { @apply btn border border-current hover:bg-white/10; }
+
+@utility field { @apply w-full rounded-xl border border-ink/15 bg-white px-4 py-3 text-ink placeholder:text-mute/60 outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/15; }
+@utility label { @apply mb-1.5 block text-sm font-medium text-ink/80; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .infinity-path { animation: none; stroke-dashoffset: 0; }
+  .animate-float, .animate-marquee { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
+/* entrance for content that arrives after an API call (not tied to scroll observers) */
+@keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .7s cubic-bezier(.2,.7,.2,1) both; }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }

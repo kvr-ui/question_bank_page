@@ -1,0 +1,16 @@
+{
+  "name": "focas-infinite-question-bank",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n server,client -c blue,yellow \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "build": "npm install --prefix client --include=dev && npm run build --prefix client",
+    "start": "npm start --prefix server",
+    "seed": "npm run seed --prefix server",
+    "postinstall": "npm install --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

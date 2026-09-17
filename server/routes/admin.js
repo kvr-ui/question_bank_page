@@ -1,0 +1,248 @@
+import crypto from 'node:crypto';
+import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
+import { z } from 'zod';
+import Lead from '../models/Lead.js';
+import Testimonial from '../models/Testimonial.js';
+import Product from '../models/Product.js';
+import PaymentLink from '../models/PaymentLink.js';
+import Order from '../models/Order.js';
+import { requireAdmin, COOKIE_NAME } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+
+const router = Router();
+
+// ---------- auth ----------
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: true, legacyHeaders: false });
+
+router.post('/login', loginLimiter, validate(z.object({ password: z.string() })), (req, res) => {
+  const expected = Buffer.from(process.env.ADMIN_PASSWORD || '');
+  const given = Buffer.from(req.body.password);
+  if (!expected.length || expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) {
+    return res.status(401).json({ error: 'Incorrect password' });
+  }
+  const token = jwt.sign({ role: 'admin' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    sameSite: 'strict',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+  res.json({ ok: true });
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie(COOKIE_NAME);
+  res.json({ ok: true });
+});
+
+router.use(requireAdmin);
+router.get('/me', (req, res) => res.json({ ok: true }));
+
+const idOr404 = (Model) => async (req, res, next) => {
+  const doc = await Model.findById(req.params.id).catch(() => null);
+  if (!doc) return res.status(404).json({ error: 'Not found' });
+  req.doc = doc;
+  next();
+};
+
+// ---------- stats ----------
+router.get('/stats', async (req, res) => {
+  const [newLeads, totalLeads, paidOrders, pendingShip, revenue] = await Promise.all([
+    Lead.countDocuments({ status: 'new' }),
+    Lead.countDocuments(),
+    Order.countDocuments({ status: 'paid' }),
+    Order.countDocuments({ status: 'paid', shipStatus: 'pending' }),
+    Order.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+  ]);
+  res.json({ newLeads, totalLeads, paidOrders, pendingShip, revenue: revenue[0]?.total || 0 });
+});
+
+// ---------- leads ----------
+const leadFilter = (q) => {
+  const filter = {};
+  if (q.status) filter.status = q.status;
+  if (q.search) {
+    const rx = new RegExp(q.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    filter.$or = [{ name: rx }, { phone: rx }, { email: rx }];
+  }
+  return filter;
+};
+
+router.get('/leads', async (req, res) => {
+  const leads = await Lead.find(leadFilter(req.query)).sort({ createdAt: -1 }).limit(1000).lean();
+  res.json(leads);
+});
+
+const csvCell = (v) => {
+  let s = String(v ?? '');
+  if (/^[=+\-@]/.test(s)) s = `'${s}`; // guard against spreadsheet formula injection
+  return `"${s.replace(/"/g, '""')}"`;
+};
+
+router.get('/leads/export.csv', async (req, res) => {
+  const leads = await Lead.find(leadFilter(req.query)).sort({ createdAt: -1 }).lean();
+  const header = ['Name', 'CountryCode', 'Phone', 'Email', 'Subjects', 'Status', 'Notes', 'CreatedAt'];
+  const rows = leads.map((l) =>
+    [l.name, '91', l.phone, l.email, (l.subjects || []).join('; '), l.status, l.notes, l.createdAt.toISOString()].map(csvCell).join(',')
+  );
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="leads-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send([header.join(','), ...rows].join('\n'));
+});
+
+router.patch(
+  '/leads/:id',
+  validate(z.object({ status: z.enum(['new', 'contacted', 'converted', 'not-interested']).optional(), notes: z.string().max(2000).optional() })),
+  idOr404(Lead),
+  async (req, res) => {
+    Object.assign(req.doc, req.body);
+    await req.doc.save();
+    res.json(req.doc);
+  }
+);
+
+router.delete('/leads/:id', idOr404(Lead), async (req, res) => {
+  await req.doc.deleteOne();
+  res.json({ ok: true });
+});
+
+// ---------- testimonials ----------
+// Accepts Bunny Stream "play" or "embed" URLs (or a pasted <iframe> snippet) and normalises to the embed URL.
+export function normaliseBunnyUrl(input) {
+  const src = input.match(/src=["']([^"']+)["']/)?.[1] || input.trim();
+  let url;
+  try {
+    url = new URL(src);
+  } catch {
+    return null;
+  }
+  if (!/(^|\.)mediadelivery\.net$/.test(url.hostname)) return null;
+  const m = url.pathname.match(/^\/(?:embed|play)\/(\d+)\/([0-9a-f-]{36})/i);
+  if (!m) return null;
+  return `https://iframe.mediadelivery.net/embed/${m[1]}/${m[2]}`;
+}
+
+const testimonialInput = z.object({
+  studentName: z.string().trim().min(1).max(80),
+  caption: z.string().max(200).default(''),
+  bunnyEmbedUrl: z.string().transform((v, ctx) => {
+    const url = normaliseBunnyUrl(v);
+    if (!url) {
+      ctx.addIssue({ code: 'custom', message: 'Paste a Bunny Stream link like https://iframe.mediadelivery.net/embed/<library>/<video-id>' });
+      return z.NEVER;
+    }
+    return url;
+  }),
+  orientation: z.enum(['vertical', 'landscape']).default('vertical'),
+  order: z.coerce.number().default(0),
+  active: z.boolean().default(true),
+});
+
+router.get('/testimonials', async (req, res) => {
+  res.json(await Testimonial.find().sort({ order: 1, createdAt: -1 }).lean());
+});
+router.post('/testimonials', validate(testimonialInput), async (req, res) => {
+  res.status(201).json(await Testimonial.create(req.body));
+});
+router.patch('/testimonials/:id', validate(testimonialInput.partial(), { partial: true }), idOr404(Testimonial), async (req, res) => {
+  Object.assign(req.doc, req.body);
+  await req.doc.save();
+  res.json(req.doc);
+});
+router.delete('/testimonials/:id', idOr404(Testimonial), async (req, res) => {
+  await req.doc.deleteOne();
+  res.json({ ok: true });
+});
+
+// ---------- products ----------
+const productInput = z.object({
+  slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]+$/, 'Use lowercase letters, numbers and dashes'),
+  title: z.string().trim().min(2).max(120),
+  type: z.enum(['single', 'bundle']),
+  group: z.union([z.literal(1), z.literal(2), z.null()]).default(null),
+  module: z.string().max(10).default('01'),
+  subjects: z.array(z.string()).default([]),
+  price: z.coerce.number().int().min(100, 'Price must be at least ₹1'),
+  mrp: z.coerce.number().int().min(0).default(0),
+  image: z.string().max(300).default(''),
+  accent: z.string().max(20).default('#2563a8'),
+  sortOrder: z.coerce.number().default(0),
+  active: z.boolean().default(true),
+});
+
+router.get('/products', async (req, res) => {
+  res.json(await Product.find().sort({ sortOrder: 1 }).lean());
+});
+router.post('/products', validate(productInput), async (req, res) => {
+  if (await Product.exists({ slug: req.body.slug })) return res.status(409).json({ error: 'A product with this slug already exists' });
+  res.status(201).json(await Product.create(req.body));
+});
+router.patch('/products/:id', validate(productInput.partial(), { partial: true }), idOr404(Product), async (req, res) => {
+  Object.assign(req.doc, req.body);
+  await req.doc.save();
+  res.json(req.doc);
+});
+router.delete('/products/:id', idOr404(Product), async (req, res) => {
+  await req.doc.deleteOne();
+  res.json({ ok: true });
+});
+
+// ---------- payment links ----------
+const linkInput = z.object({
+  productSlugs: z.array(z.string()).min(1, 'Pick at least one product'),
+  customPrice: z.coerce.number().int().min(100).nullable().default(null),
+  note: z.string().max(200).default(''),
+  leadId: z.string().nullable().optional(),
+  expiresInDays: z.coerce.number().int().min(1).max(60).default(7),
+});
+
+router.get('/payment-links', async (req, res) => {
+  const links = await PaymentLink.find().sort({ createdAt: -1 }).limit(200).populate('lead', 'name phone').lean();
+  res.json(links.map((l) => ({ ...l, url: `${process.env.PUBLIC_URL || ''}/pay/${l.token}` })));
+});
+router.post('/payment-links', validate(linkInput), async (req, res) => {
+  const { productSlugs, customPrice, note, leadId, expiresInDays } = req.body;
+  const found = await Product.countDocuments({ slug: { $in: productSlugs } });
+  if (found !== productSlugs.length) return res.status(400).json({ error: 'One or more products do not exist' });
+  const link = await PaymentLink.create({
+    token: crypto.randomBytes(12).toString('base64url'),
+    productSlugs,
+    customPrice,
+    note,
+    lead: leadId || null,
+    expiresAt: new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000),
+  });
+  res.status(201).json({ ...link.toObject(), url: `${process.env.PUBLIC_URL || ''}/pay/${link.token}` });
+});
+router.delete('/payment-links/:id', idOr404(PaymentLink), async (req, res) => {
+  await req.doc.deleteOne();
+  res.json({ ok: true });
+});
+
+// ---------- orders ----------
+router.get('/orders', async (req, res) => {
+  const filter = {};
+  if (req.query.status) filter.status = req.query.status;
+  if (req.query.shipStatus) filter.shipStatus = req.query.shipStatus;
+  res.json(await Order.find(filter).sort({ createdAt: -1 }).limit(1000).lean());
+});
+router.patch(
+  '/orders/:id',
+  validate(
+    z.object({
+      shipStatus: z.enum(['pending', 'dispatched', 'delivered']).optional(),
+      trackingInfo: z.string().max(200).optional(),
+      appAccess: z.enum(['pending', 'activated']).optional(),
+    })
+  ),
+  idOr404(Order),
+  async (req, res) => {
+    Object.assign(req.doc, req.body);
+    await req.doc.save();
+    res.json(req.doc);
+  }
+);
+
+export default router;

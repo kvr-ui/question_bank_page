@@ -1,0 +1,60 @@
+import aiScreen from '../assets/ai-screen.webp';
+import lifestyle from '../assets/hero-bg.webp';
+
+const STEPS = [
+  ['Scan', 'Scan the QR code inside your book.'],
+  ['Pick', 'Choose any question from your bank, by subject and chapter.'],
+  ['Practise', 'Get a fresh, similar question: same concept and method, new figures.'],
+];
+
+export default function HowAIWorks() {
+  return (
+    <section id="ai" className="grain relative overflow-hidden bg-ink py-20 text-paper sm:py-28">
+      <div className="pointer-events-none absolute right-[-10%] top-10 h-[480px] w-[480px] rounded-full bg-brand/40 blur-[130px]" />
+      <div className="relative mx-auto grid max-w-7xl gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_1.15fr] lg:items-center">
+        <div>
+          <p className="reveal text-sm font-semibold uppercase tracking-[0.25em] text-gold">How does the AI Generation work?</p>
+          <h2 className="reveal mt-4 font-display text-5xl uppercase leading-[0.95] sm:text-6xl">
+            You scan the QR code inside the book, and start practicing.
+          </h2>
+          <p className="reveal mt-6 text-2xl font-light text-paper/85">
+            That’s it. <span className="text-gold-2">As easy as it sounds.</span>
+          </p>
+
+          <ol className="mt-10 space-y-4">
+            {STEPS.map(([title, body], i) => (
+              <li key={title} className="reveal flex gap-4 rounded-2xl border border-paper/10 bg-paper/5 p-4" style={{ transitionDelay: `${i * 100}ms` }}>
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-gold font-display text-xl text-ink">{i + 1}</span>
+                <div>
+                  <p className="font-semibold">{title}</p>
+                  <p className="text-sm text-paper/70">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        <div className="reveal relative pb-16 sm:pb-24">
+          <figure className="relative overflow-hidden rounded-2xl border border-paper/15 bg-white shadow-[0_40px_80px_-20px_rgba(0,0,0,.6)] lg:rotate-[1.5deg]">
+            <div className="flex items-center gap-1.5 border-b border-ink/10 bg-paper-2 px-4 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+              <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+              <span className="ml-3 truncate rounded-md bg-white px-3 py-0.5 text-xs text-mute">caguru.ai · AI Practice Questions</span>
+            </div>
+            <img src={aiScreen} alt="CA Guru.ai AI Practice Questions screen showing questions filtered by subject and chapter" loading="lazy" className="w-full" />
+          </figure>
+          <img
+            src={lifestyle}
+            alt="Infinite Question Bank book on a desk"
+            loading="lazy"
+            className="absolute -bottom-2 -left-4 w-[46%] rounded-2xl border-4 border-ink object-cover shadow-2xl sm:-left-10 lg:-rotate-3"
+          />
+          <span className="absolute bottom-[18%] left-[40%] hidden rounded-full bg-gold px-3 py-1 text-xs font-bold uppercase tracking-wider text-ink shadow-lg sm:block">
+            Scan the QR →
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
