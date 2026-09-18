@@ -25,7 +25,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
+        scriptSrc: ["'self'", 'https://checkout.razorpay.com', 'https://cdn.razorpay.com'],
         frameSrc: ["'self'", 'https://api.razorpay.com', 'https://checkout.razorpay.com', 'https://iframe.mediadelivery.net', 'https://player.mediadelivery.net'],
         connectSrc: ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
@@ -33,6 +33,11 @@ app.use(
         fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       },
     },
+    // Razorpay opens the bank/OTP page in a popup and needs window.opener to report back;
+    // helmet's default 'same-origin' severs it and payments hang in "created".
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    // Razorpay checks the Referer against the website registered on the account.
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
 if (!isProd) app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
