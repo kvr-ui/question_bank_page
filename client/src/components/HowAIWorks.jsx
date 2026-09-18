@@ -1,4 +1,4 @@
-const DEMO_VIDEO = 'https://iframe.mediadelivery.net/embed/680244/17fbb403-57b4-42a5-af02-25cb3666fbe4?autoplay=false&preload=false&responsive=true';
+const DEMO_VIDEO = 'https://iframe.mediadelivery.net/embed/680244/17fbb403-57b4-42a5-af02-25cb3666fbe4?autoplay=true&muted=true&loop=true&preload=true&responsive=true';
 
 const STEPS = [
   ['Scan', 'Scan the QR code inside your book.'],
@@ -47,7 +47,7 @@ export default function HowAIWorks() {
                 title="How AI practice questions work"
                 loading="lazy"
                 className="absolute inset-0 h-full w-full border-0"
-                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
+                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
               />
             </div>
