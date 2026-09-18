@@ -1,5 +1,4 @@
-import aiScreen from '../assets/ai-screen.webp';
-import lifestyle from '../assets/hero-bg.webp';
+const DEMO_VIDEO = 'https://iframe.mediadelivery.net/embed/680244/17fbb403-57b4-42a5-af02-25cb3666fbe4?autoplay=false&preload=false&responsive=true';
 
 const STEPS = [
   ['Scan', 'Scan the QR code inside your book.'],
@@ -34,7 +33,7 @@ export default function HowAIWorks() {
           </ol>
         </div>
 
-        <div className="reveal relative pb-16 sm:pb-24">
+        <div className="reveal relative">
           <figure className="relative overflow-hidden rounded-2xl border border-paper/15 bg-white shadow-[0_40px_80px_-20px_rgba(0,0,0,.6)] lg:rotate-[1.5deg]">
             <div className="flex items-center gap-1.5 border-b border-ink/10 bg-paper-2 px-4 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
@@ -42,17 +41,17 @@ export default function HowAIWorks() {
               <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
               <span className="ml-3 truncate rounded-md bg-white px-3 py-0.5 text-xs text-mute">AI Practice Questions</span>
             </div>
-            <img src={aiScreen} alt="AI Practice Questions screen showing questions filtered by subject and chapter" loading="lazy" className="w-full" />
+            <div className="relative aspect-video bg-ink">
+              <iframe
+                src={DEMO_VIDEO}
+                title="How AI practice questions work"
+                loading="lazy"
+                className="absolute inset-0 h-full w-full border-0"
+                allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
           </figure>
-          <img
-            src={lifestyle}
-            alt="Infinite Question Bank book on a desk"
-            loading="lazy"
-            className="absolute -bottom-2 -left-4 w-[46%] rounded-2xl border-4 border-ink object-cover shadow-2xl sm:-left-10 lg:-rotate-3"
-          />
-          <span className="absolute bottom-[18%] left-[40%] hidden rounded-full bg-gold px-3 py-1 text-xs font-bold uppercase tracking-wider text-ink shadow-lg sm:block">
-            Scan the QR →
-          </span>
         </div>
       </div>
     </section>
