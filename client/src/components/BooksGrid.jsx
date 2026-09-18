@@ -93,7 +93,7 @@ export default function BooksGrid() {
                       {cart.has(p.slug) ? 'In cart ✓' : 'Add to cart'}
                     </button>
                     <Link to={`/checkout/${p.slug}`} className="btn flex-1 bg-[var(--accent)] px-3 py-2.5 text-sm text-white hover:brightness-110">
-                      Buy now
+                      Buy Now
                     </Link>
                   </div>
                 </div>

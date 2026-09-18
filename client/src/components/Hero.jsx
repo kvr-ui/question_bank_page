@@ -20,7 +20,7 @@ export default function Hero() {
           </p>
           <div className="reveal mt-10 flex flex-wrap gap-3" style={{ transitionDelay: '220ms' }}>
             <a href="#books" className="btn-gold text-base">
-              View books &amp; prices
+              Buy Now
               <span aria-hidden>→</span>
             </a>
             <a href="#inside" className="btn-ghost text-paper">

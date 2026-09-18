@@ -47,7 +47,7 @@ export default function Header() {
 
           <div className="flex items-center gap-2">
             <a href="#books" className="btn-gold hidden px-5 py-2.5 text-sm sm:inline-flex">
-              Buy now
+              Buy Now
             </a>
             <CartButton />
             <button className="rounded-lg p-2 lg:hidden" onClick={() => setOpen((o) => !o)} aria-label="Toggle menu" aria-expanded={open}>
@@ -66,7 +66,7 @@ export default function Header() {
               </a>
             ))}
             <a href="#books" onClick={() => setOpen(false)} className="btn-gold mt-4 w-full">
-              Buy now
+              Buy Now
             </a>
           </nav>
         )}
