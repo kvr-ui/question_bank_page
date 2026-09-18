@@ -4,8 +4,10 @@ import { useReveal } from '../lib/useReveal.js';
 
 function withParams(url) {
   const u = new URL(url);
-  u.searchParams.set('autoplay', 'false');
-  u.searchParams.set('preload', 'false');
+  u.searchParams.set('autoplay', 'true');
+  u.searchParams.set('muted', 'true');
+  u.searchParams.set('loop', 'true');
+  u.searchParams.set('preload', 'true');
   u.searchParams.set('responsive', 'true');
   return u.toString();
 }
@@ -67,7 +69,7 @@ export default function Testimonials() {
                     title={`Testimonial from ${t.studentName}`}
                     loading="lazy"
                     className="absolute inset-0 h-full w-full border-0"
-                    allow="accelerometer; gyroscope; encrypted-media; picture-in-picture"
+                    allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
                     allowFullScreen
                   />
                 </div>
