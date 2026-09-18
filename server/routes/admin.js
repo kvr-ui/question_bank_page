@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import Lead from '../models/Lead.js';
 import Testimonial from '../models/Testimonial.js';
-import Product from '../models/Product.js';
+import Product, { LOW_STOCK_THRESHOLD } from '../models/Product.js';
 import PaymentLink from '../models/PaymentLink.js';
 import Order from '../models/Order.js';
 import { requireAdmin, COOKIE_NAME } from '../middleware/auth.js';
@@ -49,14 +49,15 @@ const idOr404 = (Model) => async (req, res, next) => {
 
 // ---------- stats ----------
 router.get('/stats', async (req, res) => {
-  const [newLeads, totalLeads, paidOrders, pendingShip, revenue] = await Promise.all([
+  const [newLeads, totalLeads, paidOrders, pendingShip, revenue, lowStock] = await Promise.all([
     Lead.countDocuments({ status: 'new' }),
     Lead.countDocuments(),
     Order.countDocuments({ status: 'paid' }),
     Order.countDocuments({ status: 'paid', shipStatus: 'pending' }),
     Order.aggregate([{ $match: { status: 'paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]),
+    Product.find({ stock: { $ne: null, $lte: LOW_STOCK_THRESHOLD } }, 'title slug stock active').sort({ stock: 1, sortOrder: 1 }).lean(),
   ]);
-  res.json({ newLeads, totalLeads, paidOrders, pendingShip, revenue: revenue[0]?.total || 0 });
+  res.json({ newLeads, totalLeads, paidOrders, pendingShip, revenue: revenue[0]?.total || 0, lowStock, lowStockThreshold: LOW_STOCK_THRESHOLD });
 });
 
 // ---------- leads ----------
@@ -170,6 +171,7 @@ const productInput = z.object({
   accent: z.string().max(20).default('#2563a8'),
   sortOrder: z.coerce.number().default(0),
   active: z.boolean().default(true),
+  stock: z.coerce.number().int().min(0, 'Stock cannot be negative').nullable().default(null),
 });
 
 router.get('/products', async (req, res) => {

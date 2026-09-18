@@ -5,6 +5,8 @@ import { useCart } from '../lib/cart.jsx';
 import { rupees } from '../lib/format.js';
 import { paperLabel } from '../lib/subjects.js';
 
+const LOW_STOCK = 10;
+
 const TABS = [
   ['all', 'All subjects'],
   ['1', 'Group 1'],
@@ -64,7 +66,10 @@ export default function BooksGrid() {
           <p className="mt-12 rounded-2xl bg-white p-8 text-center text-mute">Books will appear here soon. Request a call and our team will help you choose.</p>
         ) : (
           <div className={`mt-12 grid gap-5 ${tab === 'bundle' ? 'sm:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 lg:grid-cols-4'}`}>
-            {visible.map((p, i) => (
+            {visible.map((p, i) => {
+              const out = p.stock != null && p.stock <= 0;
+              const low = !out && p.stock != null && p.stock <= LOW_STOCK;
+              return (
               <article
                 key={p.slug}
                 className="rise group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
@@ -72,11 +77,12 @@ export default function BooksGrid() {
               >
                 <div className="relative overflow-hidden bg-[var(--accent)]/10 p-4 sm:p-6">
                   <div className="absolute inset-x-0 top-0 h-1.5 bg-[var(--accent)]" />
+                  {out && <span className="absolute left-3 top-4 z-10 rounded-full bg-red-600 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white shadow">Out of stock</span>}
                   <img
                     src={p.image}
                     alt={`${p.title} — Infinite Question Bank cover`}
                     loading="lazy"
-                    className={`mx-auto rounded-md shadow-[0_20px_30px_-12px_rgba(0,0,0,.45)] transition duration-500 group-hover:-rotate-2 group-hover:scale-[1.03] ${p.type === 'bundle' && p.slug === 'all-8-set' ? 'w-full' : 'w-[82%]'}`}
+                    className={`mx-auto rounded-md shadow-[0_20px_30px_-12px_rgba(0,0,0,.45)] transition duration-500 group-hover:-rotate-2 group-hover:scale-[1.03] ${p.type === 'bundle' && p.slug === 'all-8-set' ? 'w-full' : 'w-[82%]'} ${out ? 'opacity-50 grayscale' : ''}`}
                   />
                 </div>
                 <div className="flex flex-1 flex-col p-4 sm:p-5">
@@ -88,17 +94,23 @@ export default function BooksGrid() {
                     <span className="font-display text-3xl leading-none">{rupees(p.price)}</span>
                     {p.mrp > p.price && <span className="text-sm text-mute line-through">{rupees(p.mrp)}</span>}
                   </p>
-                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                    <button onClick={() => cart.add(p)} className="btn flex-1 border border-ink/15 px-3 py-2.5 text-sm hover:bg-ink hover:text-paper">
-                      {cart.has(p.slug) ? 'In cart ✓' : 'Add to cart'}
-                    </button>
-                    <Link to={`/checkout/${p.slug}`} className="btn flex-1 bg-[var(--accent)] px-3 py-2.5 text-sm text-white hover:brightness-110">
-                      Buy Now
-                    </Link>
-                  </div>
+                  {low && <p className="mt-2 text-sm font-semibold text-red-600">Only {p.stock} left — order soon</p>}
+                  {out ? (
+                    <p className="mt-4 rounded-full bg-ink/5 px-3 py-2.5 text-center text-sm font-semibold text-mute">Out of stock</p>
+                  ) : (
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                      <button onClick={() => cart.add(p)} className="btn flex-1 border border-ink/15 px-3 py-2.5 text-sm hover:bg-ink hover:text-paper">
+                        {cart.has(p.slug) ? 'In cart ✓' : 'Add to cart'}
+                      </button>
+                      <Link to={`/checkout/${p.slug}`} className="btn flex-1 bg-[var(--accent)] px-3 py-2.5 text-sm text-white hover:brightness-110">
+                        Buy Now
+                      </Link>
+                    </div>
+                  )}
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

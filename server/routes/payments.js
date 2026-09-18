@@ -9,7 +9,7 @@ import Lead from '../models/Lead.js';
 import { validate } from '../middleware/validate.js';
 import { phone, email } from '../utils/validators.js';
 import { razorpay, verifyPaymentSignature, verifyWebhookSignature } from '../utils/razorpay.js';
-import { resolvePaymentLink, resolveCart, MAX_CART_ITEMS } from './public.js';
+import { resolvePaymentLink, resolveCart, isOutOfStock, MAX_CART_ITEMS } from './public.js';
 
 const router = Router();
 const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -23,6 +23,7 @@ const orderInput = z
       name: z.string().trim().min(2, 'Enter your full name').max(80),
       phone,
       email,
+      caLevel: z.enum(['Foundation', 'Intermediate', 'Final'], { error: 'Select your CA level' }),
     }),
     shipping: z.object({
       address: z.string().trim().min(8, 'Enter your full address').max(300),
@@ -34,11 +35,16 @@ const orderInput = z
   .refine((v) => v.slug || v.slugs || v.token, 'slug, slugs or token is required');
 
 async function markPaid(order, paymentId) {
-  if (order.status === 'paid') return order;
-  order.status = 'paid';
-  order.razorpayPaymentId = paymentId;
-  order.paidAt = new Date();
-  await order.save();
+  // Atomic transition so /verify and the webhook racing each other only count the sale once.
+  const paid = await Order.findOneAndUpdate(
+    { _id: order._id, status: { $ne: 'paid' } },
+    { status: 'paid', razorpayPaymentId: paymentId, paidAt: new Date() },
+    { new: true }
+  );
+  if (!paid) return order;
+  order = paid;
+  // Tracked stock only (null = untracked); never goes below zero.
+  await Product.updateMany({ slug: { $in: order.items.map((i) => i.slug) }, stock: { $gt: 0 } }, { $inc: { stock: -1 } });
   if (order.paymentLink) await PaymentLink.updateOne({ _id: order.paymentLink }, { used: true });
   await Lead.updateMany({ phone: order.customer.phone, status: { $ne: 'converted' } }, { status: 'converted' });
   return order;
@@ -65,6 +71,7 @@ router.post('/order', payLimiter, validate(orderInput), async (req, res) => {
   } else {
     const product = await Product.findOne({ slug, active: true }).lean();
     if (!product) return res.status(404).json({ error: 'Product not found' });
+    if (isOutOfStock(product)) return res.status(409).json({ error: `Sorry, ${product.title} is out of stock.` });
     items = [{ slug: product.slug, title: product.title, price: product.price }];
     amount = product.price;
   }

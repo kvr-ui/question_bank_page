@@ -16,6 +16,7 @@ const orderSchema = new mongoose.Schema(
       name: { type: String, required: true },
       phone: { type: String, required: true },
       email: { type: String, required: true },
+      caLevel: { type: String, enum: ['Foundation', 'Intermediate', 'Final'] },
     },
     shipping: {
       address: { type: String, required: true },

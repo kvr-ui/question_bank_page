@@ -14,8 +14,11 @@ const productSchema = new mongoose.Schema(
     accent: { type: String, default: '#2563a8' },
     sortOrder: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
+    stock: { type: Number, default: null, min: 0 }, // null = not tracked (always available)
   },
   { timestamps: true }
 );
+
+export const LOW_STOCK_THRESHOLD = 10;
 
 export default mongoose.model('Product', productSchema);

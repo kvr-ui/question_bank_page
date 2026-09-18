@@ -8,8 +8,10 @@ import { STATES } from '../lib/states.js';
 import { paperLabel } from '../lib/subjects.js';
 import { useCart } from '../lib/cart.jsx';
 
+const CA_LEVELS = ['Foundation', 'Intermediate', 'Final'];
+
 const emptyForm = {
-  customer: { name: '', phone: '', email: '' },
+  customer: { name: '', phone: '', email: '', caLevel: '' },
   shipping: { address: '', city: '', state: '', pincode: '' },
 };
 
@@ -128,6 +130,13 @@ export default function Checkout({ cart: fromCart = false }) {
               <div>
                 <label className="label" htmlFor="c-email">Email</label>
                 <input id="c-email" type="email" className="field" required autoComplete="email" value={form.customer.email} onChange={set('customer', 'email')} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="label" htmlFor="c-level">CA level</label>
+                <select id="c-level" className="field" required value={form.customer.caLevel} onChange={set('customer', 'caLevel')}>
+                  <option value="">Select your CA level</option>
+                  {CA_LEVELS.map((l) => <option key={l}>{l}</option>)}
+                </select>
               </div>
             </div>
           </section>

@@ -31,6 +31,25 @@ export default function Dashboard() {
           </Link>
         ))}
       </div>
+      {s?.lowStock?.length > 0 && (
+        <Card className="mt-6 ring-amber-300">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-semibold">Stock alerts</h2>
+            <Link to="/admin/products" className="text-sm text-brand hover:underline">Update stock →</Link>
+          </div>
+          <p className="mt-1 text-sm text-slate-500">Products at or below {s.lowStockThreshold} copies.</p>
+          <ul className="mt-4 divide-y divide-slate-100 text-sm">
+            {s.lowStock.map((p) => (
+              <li key={p._id} className="flex items-center justify-between gap-3 py-2">
+                <span>{p.title}{!p.active && <span className="ml-2 text-xs text-slate-400">(hidden)</span>}</span>
+                {p.stock <= 0
+                  ? <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Out of stock</span>
+                  : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{p.stock} left</span>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
     </>
   );
 }

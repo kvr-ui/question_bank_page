@@ -3,9 +3,17 @@ import { api } from '../../lib/api.js';
 import { rupees } from '../../lib/format.js';
 import { Card, ErrorText, PageTitle, btnCls, btnLightCls, inputCls } from './ui.jsx';
 
-const blank = { slug: '', title: '', type: 'single', group: '', module: '01', subjects: '', price: '', mrp: '', image: '', accent: '#1f5fae', sortOrder: 0, active: true };
+const LOW_STOCK = 10;
+const StockCell = ({ stock }) => {
+  if (stock == null) return <span className="text-xs text-slate-400">Not tracked</span>;
+  if (stock <= 0) return <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Out of stock</span>;
+  if (stock <= LOW_STOCK) return <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">{stock} · Low</span>;
+  return <span className="tabular-nums">{stock}</span>;
+};
 
-const toForm = (p) => ({ ...p, group: p.group ?? '', subjects: (p.subjects || []).join(', '), price: p.price / 100, mrp: p.mrp ? p.mrp / 100 : '' });
+const blank = { slug: '', title: '', type: 'single', group: '', module: '01', subjects: '', price: '', mrp: '', image: '', accent: '#1f5fae', sortOrder: 0, active: true, stock: '' };
+
+const toForm = (p) => ({ ...p, group: p.group ?? '', subjects: (p.subjects || []).join(', '), price: p.price / 100, mrp: p.mrp ? p.mrp / 100 : '', stock: p.stock ?? '' });
 const toBody = (f) => ({
   slug: f.slug,
   title: f.title,
@@ -19,6 +27,7 @@ const toBody = (f) => ({
   accent: f.accent,
   sortOrder: Number(f.sortOrder) || 0,
   active: f.active,
+  stock: f.stock === '' ? null : Number(f.stock),
 });
 
 export default function Products() {
@@ -81,6 +90,7 @@ export default function Products() {
             </label>
             {field('price', 'Price (₹)', { type: 'number', min: 1, step: '1', required: true })}
             {field('mrp', 'MRP (₹, optional — shows strike-through)', { type: 'number', min: 0, step: '1' })}
+            {field('stock', 'Stock (leave blank to not track)', { type: 'number', min: 0, step: '1' })}
             {field('module', 'Module')}
             {field('sortOrder', 'Sort order', { type: 'number' })}
             <div className="sm:col-span-2">{field('subjects', 'Subjects (comma separated)')}</div>
@@ -102,7 +112,7 @@ export default function Products() {
       <Card className="overflow-x-auto p-0">
         <table className="w-full min-w-[700px] text-sm">
           <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-            <tr><th className="p-3" /><th className="p-3">Product</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Status</th><th className="p-3" /></tr>
+            <tr><th className="p-3" /><th className="p-3">Product</th><th className="p-3">Type</th><th className="p-3">Price</th><th className="p-3">Stock</th><th className="p-3">Status</th><th className="p-3" /></tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {products.map((p) => (
@@ -111,6 +121,7 @@ export default function Products() {
                 <td className="p-3 font-medium">{p.title}<div className="text-xs font-normal text-slate-500">/checkout/{p.slug}</div></td>
                 <td className="p-3 text-xs">{p.type}{p.group ? ` · G${p.group}` : ''}</td>
                 <td className="p-3">{rupees(p.price)}{p.mrp > 0 && <div className="text-xs text-slate-400 line-through">{rupees(p.mrp)}</div>}</td>
+                <td className="p-3"><StockCell stock={p.stock} /></td>
                 <td className="p-3 text-xs">{p.active ? 'Active' : 'Hidden'}</td>
                 <td className="space-x-3 whitespace-nowrap p-3 text-right text-xs">
                   <button className="text-brand hover:underline" onClick={() => { setForm(toForm(p)); setEditing(p._id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Edit</button>
@@ -118,7 +129,7 @@ export default function Products() {
                 </td>
               </tr>
             ))}
-            {!products.length && <tr><td colSpan={6} className="p-8 text-center text-slate-500">No products. Run <code>npm run seed</code> to add the 8 subjects and sets.</td></tr>}
+            {!products.length && <tr><td colSpan={7} className="p-8 text-center text-slate-500">No products. Run <code>npm run seed</code> to add the 8 subjects and sets.</td></tr>}
           </tbody>
         </table>
       </Card>

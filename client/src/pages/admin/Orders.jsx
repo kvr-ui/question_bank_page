@@ -37,7 +37,7 @@ export default function Orders() {
           <Card key={o._id}>
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <p className="font-semibold">{o.customer.name} <Badge value={o.status} /></p>
+                <p className="font-semibold">{o.customer.name} <Badge value={o.status} />{o.customer.caLevel && <span className="ml-1 inline-block rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-800">CA {o.customer.caLevel}</span>}</p>
                 <p className="text-sm text-slate-600">
                   <a className="text-brand hover:underline" href={`https://wa.me/91${o.customer.phone}`} target="_blank" rel="noreferrer">{o.customer.phone}</a> · {o.customer.email}
                 </p>

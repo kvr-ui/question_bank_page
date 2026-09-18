@@ -23,7 +23,6 @@ export default function Footer() {
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-paper/50">Contact</p>
             <ul className="mt-4 space-y-3 text-paper/85">
-              <li><a className="hover:text-gold" href={`tel:+${CONTACT.phone}`}>{CONTACT.phoneDisplay}</a></li>
               <li><a className="hover:text-gold" href={CONTACT.website} target="_blank" rel="noreferrer">focasedu.com</a></li>
               <li><a className="hover:text-gold" href={CONTACT.instagram} target="_blank" rel="noreferrer">@focasedu on Instagram</a></li>
             </ul>

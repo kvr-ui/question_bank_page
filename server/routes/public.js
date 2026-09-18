@@ -15,7 +15,13 @@ router.get('/testimonials', async (req, res) => {
   res.json(items.map(({ _id, studentName, caption, bunnyEmbedUrl, orientation }) => ({ _id, studentName, caption, bunnyEmbedUrl, orientation })));
 });
 
-const priced = (p) => ({ slug: p.slug, title: p.title, type: p.type, group: p.group, module: p.module, subjects: p.subjects, image: p.image, accent: p.accent, price: p.price, mrp: p.mrp });
+const priced = (p) => ({ slug: p.slug, title: p.title, type: p.type, group: p.group, module: p.module, subjects: p.subjects, image: p.image, accent: p.accent, price: p.price, mrp: p.mrp, stock: p.stock ?? null });
+
+export const isOutOfStock = (p) => p.stock != null && p.stock <= 0;
+const outOfStockError = (products) => {
+  const out = products.filter(isOutOfStock);
+  return out.length ? { error: `Sorry, ${out.map((p) => p.title).join(', ')} ${out.length > 1 ? 'are' : 'is'} out of stock.`, status: 409 } : null;
+};
 
 router.get('/products', async (req, res) => {
   const items = await Product.find({ active: true }).sort({ sortOrder: 1 }).lean();
@@ -31,6 +37,8 @@ export async function resolveCart(slugs) {
   if (unique.length > MAX_CART_ITEMS) return { error: 'Too many items in cart', status: 400 };
   const found = await Product.find({ slug: { $in: unique }, active: true }).sort({ sortOrder: 1 }).lean();
   if (found.length !== unique.length) return { error: 'Some items in your cart are no longer available. Please review your cart.', status: 404 };
+  const oos = outOfStockError(found);
+  if (oos) return oos;
   const amount = found.reduce((s, p) => s + p.price, 0);
   const mrp = found.reduce((s, p) => s + (p.mrp || p.price), 0);
   return { products: found, amount, mrp };
@@ -46,6 +54,8 @@ router.get('/checkout/cart', async (req, res) => {
 router.get('/checkout/product/:slug', async (req, res) => {
   const product = await Product.findOne({ slug: req.params.slug, active: true }).lean();
   if (!product) return res.status(404).json({ error: 'Product not found' });
+  const oos = outOfStockError([product]);
+  if (oos) return res.status(oos.status).json({ error: oos.error });
   res.json({ items: [priced(product)], amount: product.price, mrp: product.mrp || 0 });
 });
 
@@ -56,6 +66,8 @@ export async function resolvePaymentLink(token) {
   if (link.expiresAt < new Date()) return { error: 'This payment link has expired. Please contact our team for a new one.', status: 410 };
   const products = await Product.find({ slug: { $in: link.productSlugs } }).lean();
   if (!products.length) return { error: 'Products for this link are no longer available', status: 404 };
+  const oos = outOfStockError(products);
+  if (oos) return oos;
   const total = products.reduce((s, p) => s + p.price, 0);
   const mrp = products.reduce((s, p) => s + (p.mrp || p.price), 0);
   return { link, products, amount: link.customPrice ?? total, mrp };
