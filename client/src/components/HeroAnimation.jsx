@@ -9,7 +9,7 @@ import InfinityMark from './InfinityMark.jsx';
 export default function HeroAnimation() {
   return (
     <div className="relative mx-auto flex aspect-square w-full max-w-[560px] items-center justify-center">
-      <InfinityMark animated className="absolute inset-0 m-auto w-[115%] -translate-x-[6%] text-gold/35" strokeWidth={10} />
+      <InfinityMark animated className="absolute inset-0 m-auto w-[115%] -translate-x-[10%] text-gold/35" strokeWidth={10} />
       <div className="absolute inset-[12%] rounded-full bg-brand-2/30 blur-3xl" />
       <img
         src={bookImg}
