@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import Testimonial from '../models/Testimonial.js';
-import Product from '../models/Product.js';
+import { findActive, findBySlug, findBySlugs, LIVE } from '../services/catalog.js';
 import PaymentLink from '../models/PaymentLink.js';
 import Order from '../models/Order.js';
 
@@ -15,7 +15,9 @@ router.get('/testimonials', async (req, res) => {
   res.json(items.map(({ _id, studentName, caption, bunnyEmbedUrl, orientation }) => ({ _id, studentName, caption, bunnyEmbedUrl, orientation })));
 });
 
-const priced = (p) => ({ slug: p.slug, title: p.title, type: p.type, group: p.group, module: p.module, subjects: p.subjects, image: p.image, accent: p.accent, price: p.price, mrp: p.mrp, stock: p.stock ?? null });
+// What the client is allowed to see. productId is carried through so the order
+// can quote the LMS's own product id back to it rather than a slug.
+const priced = (p) => ({ productId: p.productId, slug: p.slug, title: p.title, type: p.type, group: p.group, module: p.module, subjects: p.subjects, image: p.image, accent: p.accent, price: p.price, mrp: p.mrp, stock: p.stock ?? null });
 
 export const isOutOfStock = (p) => p.stock != null && p.stock <= 0;
 const outOfStockError = (products) => {
@@ -24,18 +26,19 @@ const outOfStockError = (products) => {
 };
 
 router.get('/products', async (req, res) => {
-  const items = await Product.find({ active: true }).sort({ sortOrder: 1 }).lean();
+  const items = await findActive();
   res.json(items.map(priced));
 });
 
 export const MAX_CART_ITEMS = 20;
+export { LIVE };
 
 // Resolves a cart (list of slugs) to active products; the total is always computed here.
-export async function resolveCart(slugs) {
+export async function resolveCart(slugs, opts) {
   const unique = [...new Set(slugs)];
   if (!unique.length) return { error: 'Your cart is empty', status: 400 };
   if (unique.length > MAX_CART_ITEMS) return { error: 'Too many items in cart', status: 400 };
-  const found = await Product.find({ slug: { $in: unique }, active: true }).sort({ sortOrder: 1 }).lean();
+  const found = await findBySlugs(unique, opts);
   if (found.length !== unique.length) return { error: 'Some items in your cart are no longer available. Please review your cart.', status: 404 };
   const oos = outOfStockError(found);
   if (oos) return oos;
@@ -52,19 +55,19 @@ router.get('/checkout/cart', async (req, res) => {
 });
 
 router.get('/checkout/product/:slug', async (req, res) => {
-  const product = await Product.findOne({ slug: req.params.slug, active: true }).lean();
+  const product = await findBySlug(req.params.slug);
   if (!product) return res.status(404).json({ error: 'Product not found' });
   const oos = outOfStockError([product]);
   if (oos) return res.status(oos.status).json({ error: oos.error });
   res.json({ items: [priced(product)], amount: product.price, mrp: product.mrp || 0 });
 });
 
-export async function resolvePaymentLink(token) {
+export async function resolvePaymentLink(token, opts) {
   const link = await PaymentLink.findOne({ token });
   if (!link) return { error: 'This payment link is invalid', status: 404 };
   if (link.used) return { error: 'This payment link has already been used', status: 410 };
   if (link.expiresAt < new Date()) return { error: 'This payment link has expired. Please contact our team for a new one.', status: 410 };
-  const products = await Product.find({ slug: { $in: link.productSlugs } }).lean();
+  const products = await findBySlugs(link.productSlugs, opts);
   if (!products.length) return { error: 'Products for this link are no longer available', status: 404 };
   const oos = outOfStockError(products);
   if (oos) return oos;

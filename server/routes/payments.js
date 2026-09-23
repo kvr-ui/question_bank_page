@@ -2,7 +2,7 @@ import { Router } from 'express';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import Product from '../models/Product.js';
+import { findBySlug, LIVE } from '../services/catalog.js';
 import Order from '../models/Order.js';
 import PaymentLink from '../models/PaymentLink.js';
 import Lead from '../models/Lead.js';
@@ -10,6 +10,7 @@ import { validate } from '../middleware/validate.js';
 import { phone, email } from '../utils/validators.js';
 import { razorpay, verifyPaymentSignature, verifyWebhookSignature } from '../utils/razorpay.js';
 import { resolvePaymentLink, resolveCart, isOutOfStock, MAX_CART_ITEMS } from './public.js';
+import { syncOrderToLms } from '../services/lmsSync.js';
 
 const router = Router();
 const payLimiter = rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false });
@@ -43,10 +44,19 @@ async function markPaid(order, paymentId) {
   );
   if (!paid) return order;
   order = paid;
-  // Tracked stock only (null = untracked); never goes below zero.
-  await Product.updateMany({ slug: { $in: order.items.map((i) => i.slug) }, stock: { $gt: 0 } }, { $inc: { stock: -1 } });
+  // Stock is NOT decremented here any more. The catalogue lives in the LMS, and
+  // recordPurchase() there reduces it, writes an InventoryLog row and fires the
+  // low-stock alert — all of which this side used to miss. Decrementing in both
+  // places would double-count every sale.
   if (order.paymentLink) await PaymentLink.updateOne({ _id: order.paymentLink }, { used: true });
   await Lead.updateMany({ phone: order.customer.phone, status: { $ne: 'converted' } }, { status: 'converted' });
+
+  // Push the sale into the FOCAS LMS (All Orders, sales reports, buyer access).
+  // Deliberately not awaited: the customer's payment is already captured, so a
+  // slow or down LMS must not delay or fail this response. Anything that misses
+  // stays lmsSync.status 'pending' and the sweeper retries it.
+  syncOrderToLms(order).catch((err) => console.error('[lms-sync] unexpected:', err.message));
+
   return order;
 }
 
@@ -57,22 +67,24 @@ router.post('/order', payLimiter, validate(orderInput), async (req, res) => {
   let paymentLink = null;
 
   // Amount is always computed on the server; the client never sends a price.
+  // LIVE forces a catalogue re-fetch: this figure becomes a charge, so it must
+  // not come from a cached copy that an admin has already edited away from.
   if (token) {
-    const r = await resolvePaymentLink(token);
+    const r = await resolvePaymentLink(token, LIVE);
     if (r.error) return res.status(r.status).json({ error: r.error });
-    items = r.products.map((p) => ({ slug: p.slug, title: p.title, price: p.price }));
+    items = r.products.map((p) => ({ productId: p.productId, slug: p.slug, title: p.title, price: p.price }));
     amount = r.amount;
     paymentLink = r.link._id;
   } else if (slugs) {
-    const r = await resolveCart(slugs);
+    const r = await resolveCart(slugs, LIVE);
     if (r.error) return res.status(r.status).json({ error: r.error });
-    items = r.products.map((p) => ({ slug: p.slug, title: p.title, price: p.price }));
+    items = r.products.map((p) => ({ productId: p.productId, slug: p.slug, title: p.title, price: p.price }));
     amount = r.amount;
   } else {
-    const product = await Product.findOne({ slug, active: true }).lean();
+    const product = await findBySlug(slug, LIVE);
     if (!product) return res.status(404).json({ error: 'Product not found' });
     if (isOutOfStock(product)) return res.status(409).json({ error: `Sorry, ${product.title} is out of stock.` });
-    items = [{ slug: product.slug, title: product.title, price: product.price }];
+    items = [{ productId: product.productId, slug: product.slug, title: product.title, price: product.price }];
     amount = product.price;
   }
 

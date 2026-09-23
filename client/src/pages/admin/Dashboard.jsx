@@ -14,14 +14,13 @@ export default function Dashboard() {
     ['New leads', s?.newLeads, '/admin/leads'],
     ['Total leads', s?.totalLeads, '/admin/leads'],
     ['Paid orders', s?.paidOrders, '/admin/orders'],
-    ['Awaiting dispatch', s?.pendingShip, '/admin/orders'],
     ['Revenue', s ? rupees(s.revenue) : undefined, '/admin/orders'],
   ];
 
   return (
     <>
       <PageTitle title="Dashboard" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {tiles.map(([label, value, to]) => (
           <Link key={label} to={to}>
             <Card className="transition hover:ring-brand/40">
@@ -35,7 +34,7 @@ export default function Dashboard() {
         <Card className="mt-6 ring-amber-300">
           <div className="flex items-center justify-between gap-3">
             <h2 className="font-semibold">Stock alerts</h2>
-            <Link to="/admin/products" className="text-sm text-brand hover:underline">Update stock →</Link>
+            <Link to="/admin/products" className="text-sm text-brand hover:underline">View catalogue →</Link>
           </div>
           <p className="mt-1 text-sm text-slate-500">Products at or below {s.lowStockThreshold} copies.</p>
           <ul className="mt-4 divide-y divide-slate-100 text-sm">

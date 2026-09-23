@@ -10,6 +10,7 @@ import leadsRouter from './routes/leads.js';
 import publicRouter from './routes/public.js';
 import paymentsRouter, { webhookRouter } from './routes/payments.js';
 import adminRouter from './routes/admin.js';
+import { startLmsSyncSweeper } from './services/lmsSync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -66,7 +67,11 @@ app.use((err, req, res, next) => {
 
 const port = Number(process.env.PORT) || 5000;
 connectDB()
-  .then(() => app.listen(port, () => console.log(`Server running on http://localhost:${port}`)))
+  .then(() => {
+    // Retries paid orders that didn't reach the LMS first time.
+    startLmsSyncSweeper();
+    app.listen(port, () => console.log(`Server running on http://localhost:${port}`));
+  })
   .catch((err) => {
     console.error('Failed to start:', err.message);
     process.exit(1);

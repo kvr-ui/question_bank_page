@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api.js';
+
+const LMS_ADMIN_URL = import.meta.env.VITE_LMS_ADMIN_URL || '';
 import { dateTime, rupees } from '../../lib/format.js';
 import { Badge, Card, ErrorText, PageTitle, inputCls } from './ui.jsx';
 
@@ -57,12 +59,25 @@ export default function Orders() {
               </div>
               {o.status === 'paid' && (
                 <div className="space-y-2">
-                  <label className="block text-xs uppercase text-slate-500">Shipping
-                    <select className={`${inputCls} mt-1`} value={o.shipStatus} onChange={(e) => update(o._id, { shipStatus: e.target.value })}>
-                      <option>pending</option><option>dispatched</option><option>delivered</option>
-                    </select>
-                  </label>
-                  <input className={inputCls} placeholder="Courier / tracking no." defaultValue={o.trackingInfo} onBlur={(e) => e.target.value !== o.trackingInfo && update(o._id, { trackingInfo: e.target.value })} />
+                  {/* Dispatch moved to the FOCAS LMS — it creates the Delhivery
+                      shipment and holds the AWB. Recording it here too would
+                      leave two half-true records of the same parcel. */}
+                  <div>
+                    <p className="text-xs uppercase text-slate-500">Shipping</p>
+                    <p className="text-sm text-slate-600">
+                      Dispatched from the FOCAS LMS
+                      {LMS_ADMIN_URL
+                        ? <> — <a href={`${LMS_ADMIN_URL}/orders`} target="_blank" rel="noreferrer" className="text-brand hover:underline">open All Orders →</a></>
+                        : ' (All Orders → Delivery)'}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {o.lmsSync?.status === 'synced'
+                        ? 'Synced to the LMS.'
+                        : o.lmsSync?.status === 'failed'
+                          ? `Not synced yet — ${o.lmsSync.error || 'see the server log'}`
+                          : 'Waiting to sync to the LMS.'}
+                    </p>
+                  </div>
                   <label className="flex items-center gap-2 text-sm">
                     <input type="checkbox" checked={o.appAccess === 'activated'} onChange={(e) => update(o._id, { appAccess: e.target.checked ? 'activated' : 'pending' })} />
                     CA Guru.ai access activated
